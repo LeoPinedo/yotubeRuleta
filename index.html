@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Epic Games Backlog Roulette & Quest Journal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Google Font: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            epic: {
+              black: '#0a0d14',
+              card: '#121722',
+              cardBorder: '#1e2638',
+              cyan: '#00f2fe',
+              blue: '#4facfe',
+              neonPink: '#ff2d55',
+              neonPurple: '#8e2de2'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #080b11;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(79, 172, 254, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(142, 45, 226, 0.08) 0px, transparent 50%);
+      min-height: 100vh;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f141f;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #253047;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3b4d70;
+    }
+    .neon-border {
+      box-shadow: 0 0 25px -5px rgba(0, 242, 254, 0.25);
+    }
+    .pointer-shadow {
+      filter: drop-shadow(0 0 8px rgba(255, 45, 85, 0.8));
+    }
+  </style>
+</head>
+<body class="text-slate-200 antialiased font-sans selection:bg-cyan-500 selection:text-black">
+
+  <!-- Toast Notification System -->
+  <div id="toast" class="fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3 rounded-xl bg-slate-900/90 border border-slate-700/80 text-white shadow-2xl backdrop-blur-md transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none">
+    <i id="toastIcon" class="ph ph-check-circle text-cyan-400 text-2xl"></i>
+    <span id="toastMsg" class="text-sm font-medium">Notificación</span>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 py-6 md:py-10 space-y-8">
+    
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest bg-cyan-950/60 border border-cyan-800/40 text-cyan-400 mb-2">
+          <i class="ph-fill ph-game-controller text-sm"></i> Epic Backlog Quest
+        </div>
+        <h1 class="text-3xl md:text-5xl font-black font-display tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400">
+          Ruleta de Desafíos Epic
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base mt-1">
+          Gira, descubre tu siguiente juego gratis acumulado, vívelo y registra tu bitácora de hazañas.
+        </p>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="flex items-center gap-3 bg-slate-900/60 p-2 rounded-2xl border border-slate-800 backdrop-blur-sm">
+        <div class="px-4 py-2 text-center border-r border-slate-800">
+          <span class="block text-2xl font-black font-display text-cyan-400" id="totalGamesStat">0</span>
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">En Ruleta</span>
+        </div>
+        <div class="px-4 py-2 text-center border-r border-slate-800">
+          <span class="block text-2xl font-black font-display text-emerald-400" id="completedStat">0</span>
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Completados</span>
+        </div>
+        <div class="px-4 py-2 text-center">
+          <span class="block text-2xl font-black font-display text-amber-400" id="pendingStat">0</span>
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">En Curso</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid: Roulette Wheel & Active Quest Card -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- LEFT / TOP: Roulette & Controls (7 Cols) -->
+      <div class="lg:col-span-7 flex flex-col items-center bg-slate-900/40 p-6 md:p-8 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden backdrop-blur-sm">
+        
+        <!-- Background Neon Glow -->
+        <div class="absolute -top-24 -left-24 w-80 h-80 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- Wheel Canvas Container -->
+        <div class="relative w-full max-w-[440px] aspect-square flex items-center justify-center my-2">
+          <!-- Pointer Pin -->
+          <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 pointer-shadow">
+            <div class="w-0 h-0 border-y-[15px] border-y-transparent border-r-[26px] border-r-pink-500"></div>
+          </div>
+          
+          <!-- Outer Neon Ring Frame -->
+          <div class="absolute inset-0 rounded-full border-4 border-cyan-500/20 shadow-[0_0_35px_rgba(0,242,254,0.15)] pointer-events-none"></div>
+
+          <!-- Wheel Canvas -->
+          <canvas id="wheelCanvas" class="w-full h-full rounded-full cursor-pointer transition-transform duration-150"></canvas>
+
+          <!-- Center Cap -->
+          <button id="centerSpinBtn" class="absolute z-10 w-20 h-20 rounded-full bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-800 border-2 border-cyan-400/80 shadow-[0_0_20px_rgba(0,242,254,0.4)] flex flex-col items-center justify-center text-cyan-400 hover:scale-105 active:scale-95 transition-all group">
+            <i class="ph-bold ph-arrows-clockwise text-2xl group-hover:rotate-180 transition-transform duration-500"></i>
+            <span class="text-[10px] font-bold tracking-widest uppercase mt-0.5">Girar</span>
+          </button>
+        </div>
+
+        <!-- Wheel Actions & Controls -->
+        <div class="w-full mt-6 flex flex-wrap items-center justify-center gap-3">
+          <button id="spinBtn" class="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-slate-950 font-black font-display tracking-wider uppercase text-sm shadow-[0_0_25px_rgba(0,242,254,0.35)] hover:shadow-[0_0_35px_rgba(0,242,254,0.6)] hover:brightness-110 active:scale-95 transition-all flex items-center gap-2">
+            <i class="ph-bold ph-sparkle text-lg"></i> Girar Ruleta
+          </button>
+          
+          <button id="randomPickBtn" class="px-5 py-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-200 text-sm font-semibold transition-all flex items-center gap-2 hover:border-slate-500">
+            <i class="ph-bold ph-dice-five text-lg text-purple-400"></i> Elección Instantánea
+          </button>
+
+          <button id="manageLibraryBtn" class="px-4 py-3.5 rounded-2xl bg-slate-800/40 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 text-sm transition-all flex items-center gap-2">
+            <i class="ph ph-list-dashes text-lg"></i> Catálogo (<span id="btnCatCount">0</span>)
+          </button>
+        </div>
+
+        <!-- Exclude Finished Toggle -->
+        <div class="mt-5 flex items-center gap-3 text-xs text-slate-400">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="excludeCompletedToggle" class="sr-only peer" checked>
+            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+          </label>
+          <span>Excluir de la ruleta los juegos ya marcados como <strong>Completados</strong></span>
+        </div>
+      </div>
+
+      <!-- RIGHT / TOP: Active Quest / Selected Game (5 Cols) -->
+      <div class="lg:col-span-5 flex flex-col space-y-6">
+        
+        <!-- Active Quest Box -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
+          <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800/80">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              <h2 class="text-sm font-bold tracking-wider uppercase text-slate-300">Misión / Reto Actual</h2>
+            </div>
+            <span id="activeTypeBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-purple-900/60 text-purple-300 border border-purple-700/50">
+              Historia
+            </span>
+          </div>
+
+          <div id="questEmptyPrompt" class="text-center py-10 space-y-3">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center text-slate-400 text-2xl">
+              <i class="ph ph-hand-pointing"></i>
+            </div>
+            <p class="text-slate-400 text-sm">Gira la ruleta o elige al azar para asignar tu siguiente objetivo de juego.</p>
+          </div>
+
+          <div id="questActiveContent" class="hidden space-y-5">
+            <!-- Game Title -->
+            <div>
+              <h3 id="questGameTitle" class="text-2xl font-black font-display text-white leading-tight">
+                Nombre del Juego
+              </h3>
+              <p id="questCategory" class="text-xs text-slate-400 mt-1">Acción / Aventura</p>
+            </div>
+
+            <!-- Goal Condition Card -->
+            <div class="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-800/40 text-cyan-200 space-y-1">
+              <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
+                <i class="ph-bold ph-target"></i> Objetivo del Reto
+              </div>
+              <p id="questGoalText" class="text-sm leading-snug font-medium text-slate-200">
+                Completar la campaña principal y los créditos de la historia.
+              </p>
+            </div>
+
+            <!-- Status Selector -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Estado de Avance</label>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" data-status="Por Descargar" class="status-btn py-2 px-1 text-xs rounded-xl font-semibold border transition-all text-center">
+                  Por Descargar
+                </button>
+                <button type="button" data-status="Jugando" class="status-btn py-2 px-1 text-xs rounded-xl font-semibold border transition-all text-center">
+                  Jugando
+                </button>
+                <button type="button" data-status="Completado" class="status-btn py-2 px-1 text-xs rounded-xl font-semibold border transition-all text-center">
+                  Completado
+                </button>
+              </div>
+            </div>
+
+            <!-- Open Review Form Shortcut -->
+            <button id="openReviewBtn" class="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-slate-950 font-bold font-display text-sm tracking-wide transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
+              <i class="ph-bold ph-pencil-simple-line text-lg"></i> Abrir Bitácora y Reseña
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Tips Card -->
+        <div class="p-5 rounded-2xl bg-slate-900/30 border border-slate-800/60 text-xs text-slate-400 space-y-2">
+          <div class="flex items-center gap-2 font-bold text-slate-300">
+            <i class="ph-bold ph-lightbulb text-amber-400 text-base"></i> Reglas del Desafío Epic:
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-slate-400/90 pl-1">
+            <li><strong>Juegos de Historia:</strong> Descarga y juega hasta terminar la historia principal.</li>
+            <li><strong>Roguelikes / Arcade / Multi:</strong> Alcanza nivel alto o acumula mínimo <strong>10 horas</strong>.</li>
+            <li>Al completar, escribe tu análisis con tus mejores anécdotas y compártelo.</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Review / Journal Modal -->
+    <div id="reviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+      <div class="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 md:p-8 shadow-2xl space-y-6">
+        
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div>
+            <span class="text-xs font-bold text-cyan-400 uppercase tracking-widest">Bitácora de Experiencia</span>
+            <h3 id="modalGameTitle" class="text-2xl font-black font-display text-white">Título</h3>
+          </div>
+          <button id="closeModalBtn" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center">
+            <i class="ph-bold ph-x text-lg"></i>
+          </button>
+        </div>
+
+        <form id="reviewForm" class="space-y-5">
+          <!-- Hours & Rating -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                Horas / Nivel Alcanzado
+              </label>
+              <div class="relative">
+                <i class="ph ph-clock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-base"></i>
+                <input type="text" id="logTime" placeholder="Ej: 14.5 horas / Nivel 42" required
+                  class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:outline-none text-sm text-white">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                Calificación Personal (1 - 10)
+              </label>
+              <div class="relative">
+                <i class="ph ph-star absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 text-base"></i>
+                <input type="number" id="logRating" min="1" max="10" step="0.5" placeholder="Ej: 9.0" required
+                  class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:outline-none text-sm text-white">
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary Area -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              Resumen de la Experiencia (¿Valió la pena descargarlo?)
+            </label>
+            <textarea id="logSummary" rows="3" placeholder="Comenta la jugabilidad, rendimiento, narrativa y tus impresiones generales..." required
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:outline-none text-sm text-white resize-none"></textarea>
+          </div>
+
+          <!-- Best Moments -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              Mejores Momentos / Anécdotas Épicas
+            </label>
+            <textarea id="logMoments" rows="3" placeholder="Aquella batalla contra un jefe, giros inesperados, momentos divertidos o capturas memorables..." required
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:outline-none text-sm text-white resize-none"></textarea>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800">
+            <button type="button" id="copyMarkdownBtn" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
+              <i class="ph ph-copy"></i> Copiar en Formato Markdown
+            </button>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+              <button type="button" id="cancelReviewBtn" class="w-1/2 sm:w-auto px-5 py-2.5 rounded-xl text-slate-400 hover:text-white text-xs font-semibold">
+                Cancelar
+              </button>
+              <button type="submit" class="w-1/2 sm:w-auto px-6 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-bold font-display uppercase tracking-wider shadow-lg shadow-cyan-400/20">
+                Guardar Bitácora
+              </button>
+            </div>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- Catalog Management Modal -->
+    <div id="catalogModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+      <div class="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col p-6 shadow-2xl">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div>
+            <h3 class="text-xl font-black font-display text-white">Catálogo de Epic Games</h3>
+            <p class="text-xs text-slate-400">Juegos curados y sincronizados de tus capturas.</p>
+          </div>
+          <button id="closeCatalogBtn" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+            <i class="ph-bold ph-x text-base"></i>
+          </button>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="py-4 flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-1">
+            <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="catalogSearch" placeholder="Buscar juego..." 
+              class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-400">
+          </div>
+          <select id="catalogFilterType" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-300 focus:outline-none">
+            <option value="ALL">Todos los tipos</option>
+            <option value="story">Campaña / Historia</option>
+            <option value="challenge">Arcade / Roguelike / Multi (10h)</option>
+          </select>
+          <select id="catalogFilterStatus" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-300 focus:outline-none">
+            <option value="ALL">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Jugando">Jugando</option>
+            <option value="Completado">Completado</option>
+          </select>
+        </div>
+
+        <!-- Games List (scrollable) -->
+        <div id="catalogList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="pt-4 mt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+          <span id="catalogCountDisplay">Mostrando 0 títulos</span>
+          <button id="resetAllDataBtn" class="text-rose-400 hover:text-rose-300 underline">Reiniciar datos locales</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Completed Games & Logged Experience Section -->
+    <section class="mt-12 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div>
+          <h2 class="text-2xl font-black font-display text-white flex items-center gap-2">
+            <i class="ph-bold ph-trophy text-amber-400"></i> Salón de Experiencias Completadas
+          </h2>
+          <p class="text-xs md:text-sm text-slate-400">Tus bitácoras terminadas, opiniones y momentos destacados.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="exportAllReviewsBtn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-2">
+            <i class="ph ph-file-arrow-down text-cyan-400"></i> Exportar Resumen (JSON)
+          </button>
+        </div>
+      </div>
+
+      <div id="completedGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered by JS or empty state -->
+      </div>
+    </section>
+
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    /* =====================================================================
+       1. Curated Game Database (Deduplicated from screenshots)
+       ===================================================================== */
+    const RAW_TITLES = [
+      { name: "The Outer Worlds", type: "story" },
+      { name: "Telltale Batman Season 1", type: "story" },
+      { name: "Telltale Batman Season 2", type: "story" },
+      { name: "Hyper Echelon", type: "challenge" },
+      { name: "Havendock", type: "challenge" },
+      { name: "The Darkside Detective: A Fumble in the Dark", type: "story" },
+      { name: "Nobody Wants to Die", type: "story" },
+      { name: "Hogwarts Legacy", type: "story" },
+      { name: "Samorost 3", type: "story" },
+      { name: "Amnesia: The Bunker", type: "story" },
+      { name: "Monument Valley II", type: "story" },
+      { name: "Totally Reliable Delivery Service", type: "challenge" },
+      { name: "Sid Meier's Civilization VI", type: "challenge" },
+      { name: "Backpack Hero", type: "challenge" },
+      { name: "Figment", type: "story" },
+      { name: "The Operator", type: "story" },
+      { name: "Tiny Tina's Wonderlands", type: "story" },
+      { name: "Limbo", type: "story" },
+      { name: "Deliver At All Costs", type: "challenge" },
+      { name: "Sifu", type: "challenge" },
+      { name: "Dead Island 2", type: "story" },
+      { name: "CHUCHEL", type: "story" },
+      { name: "Cat Quest", type: "story" },
+      { name: "Neko Ghost, Jump!", type: "challenge" },
+      { name: "Jurassic World Evolution 2", type: "challenge" },
+      { name: "Mortal Shell", type: "story" },
+      { name: "Grand Theft Auto V", type: "story" },
+      { name: "World War Z", type: "challenge" },
+      { name: "Turmoil", type: "challenge" },
+      { name: "Ghostrunner 2", type: "story" },
+      { name: "The Lord of the Rings: Return to Moria", type: "challenge" },
+      { name: "LEGO Star Wars: The Skywalker Saga", type: "story" },
+      { name: "Bus Simulator 21 Next Stop", type: "challenge" },
+      { name: "Brotato", type: "challenge" },
+      { name: "Beholder", type: "story" },
+      { name: "Castlevania Anniversary Collection", type: "challenge" },
+      { name: "Ghostwire: Tokyo", type: "story" },
+      { name: "Outliver: Tribulation", type: "story" },
+      { name: "Empyrion - Galactic Survival", type: "challenge" },
+      { name: "Off The Grid", type: "challenge" },
+      { name: "TOEM", type: "story" },
+      { name: "The Last Stand: Aftermath", type: "challenge" },
+      { name: "SUPER CRAZY RHYTHM CASTLE", type: "challenge" },
+      { name: "Football Manager 2024", type: "challenge" },
+      { name: "Sniper Ghost Warrior Contracts", type: "story" },
+      { name: "Wild Card Football", type: "challenge" },
+      { name: "Fallout: A Post Nuclear RPG", type: "story" },
+      { name: "Fallout Tactics: Brotherhood of Steel", type: "challenge" },
+      { name: "Fallout 2: A Post Nuclear RPG", type: "story" },
+      { name: "Fallout 3: Game of the Year Edition", type: "story" },
+      { name: "Fallout: New Vegas", type: "story" },
+      { name: "Gigantic: Rampage Edition", type: "challenge" },
+      { name: "The Callisto Protocol", type: "story" },
+      { name: "Death's Gambit: Afterlife", type: "challenge" },
+      { name: "DNF Duel", type: "challenge" },
+      { name: "CYGNI: All Guns Blazing", type: "challenge" },
+      { name: "Redout 2", type: "challenge" },
+      { name: "Marvel's Midnight Suns", type: "story" },
+      { name: "Chivalry 2", type: "challenge" },
+      { name: "Dragon Age: Inquisition", type: "story" },
+      { name: "LISA: The Painful", type: "story" },
+      { name: "LISA: The Joyful", type: "story" },
+      { name: "Ghostrunner", type: "story" },
+      { name: "Thief", type: "story" },
+      { name: "Dakar Desert Rally", type: "challenge" },
+      { name: "Doki Doki Literature Club Plus!", type: "story" },
+      { name: "Infinifactory", type: "challenge" },
+      { name: "Sail Forth", type: "story" },
+      { name: "Marvel's Guardians of the Galaxy", type: "story" },
+      { name: "Saints Row", type: "story" },
+      { name: "Cursed to Golf", type: "challenge" },
+      { name: "The Outer Worlds: Spacer's Choice", type: "story" },
+      { name: "The Evil Within", type: "story" },
+      { name: "Blazing Sails", type: "challenge" },
+      { name: "Godlike Burger", type: "challenge" },
+      { name: "Homeworld Remastered Collection", type: "challenge" },
+      { name: "The Elder Scrolls Online", type: "challenge" },
+      { name: "Train Valley 2", type: "challenge" },
+      { name: "NARAKA: BLADEPOINT", type: "challenge" },
+      { name: "GRIME", type: "challenge" },
+      { name: "Guacamelee! Super Turbo CE", type: "story" },
+      { name: "Guacamelee! 2", type: "story" },
+      { name: "Midnight Ghost Hunt", type: "challenge" },
+      { name: "Dying Light", type: "story" },
+      { name: "Tunche", type: "challenge" },
+      { name: "Duskers", type: "challenge" },
+      { name: "VALORANT", type: "challenge" },
+      { name: "Gamedec - Definitive Edition", type: "story" },
+      { name: "Eximius: Seize the Frontline", type: "challenge" },
+      { name: "Dishonored - Definitive Edition", type: "story" },
+      { name: "Severed Steel", type: "challenge" },
+      { name: "Death Stranding", type: "story" },
+      { name: "Encased", type: "story" },
+      { name: "Wildcat Gun Machine", type: "challenge" },
+      { name: "RPG in a Box", type: "challenge" },
+      { name: "Darkwood", type: "story" },
+      { name: "Rising Hell", type: "challenge" },
+      { name: "Slain: Back From Hell", type: "challenge" },
+      { name: "Blankos Block Party", type: "challenge" },
+      { name: "Destiny 2", type: "challenge" },
+      { name: "DOOM 64", type: "story" },
+      { name: "Tannenberg", type: "challenge" },
+      { name: "Killing Floor 2", type: "challenge" },
+      { name: "Hood: Outlaws & Legends", type: "challenge" },
+      { name: "Car Mechanic Simulator 2018", type: "challenge" },
+      { name: "Fall Guys", type: "challenge" },
+      { name: "Supraland", type: "story" },
+      { name: "Wolfenstein: The New Order", type: "story" },
+      { name: "BioShock Remastered", type: "story" },
+      { name: "BioShock 2 Remastered", type: "story" },
+      { name: "BioShock Infinite: Complete", type: "story" },
+      { name: "Borderlands 3", type: "story" },
+      { name: "PREY", type: "story" },
+      { name: "Terraforming Mars", type: "challenge" },
+      { name: "The Vanishing of Ethan Carter", type: "story" },
+      { name: "City of Brass", type: "challenge" },
+      { name: "Century: Age of Ashes", type: "challenge" },
+      { name: "DAEMON X MACHINA", type: "challenge" },
+      { name: "Tomb Raider: GOTY Edition", type: "story" },
+      { name: "Rise of the Tomb Raider: 20 Year", type: "story" },
+      { name: "Shadow of the Tomb Raider", type: "story" },
+      { name: "Minit", type: "story" },
+      { name: "Sonic Mania", type: "story" },
+      { name: "Horizon Chase Turbo", type: "challenge" },
+      { name: "Hell is other demons", type: "challenge" },
+      { name: "Control", type: "story" },
+      { name: "Genshin Impact", type: "challenge" },
+      { name: "Among Us", type: "challenge" },
+      { name: "NBA 2K21", type: "challenge" },
+      { name: "Scavengers", type: "challenge" },
+      { name: "The Lion's Song", type: "story" },
+      { name: "Pine", type: "story" },
+      { name: "Hand of Fate 2", type: "challenge" },
+      { name: "Tales of the Neon Sea", type: "story" },
+      { name: "The Fall", type: "story" },
+      { name: "Wargame: Red Dragon", type: "challenge" },
+      { name: "Sunless Sea", type: "story" },
+      { name: "RAGE 2", type: "story" },
+      { name: "Absolute Drift", type: "challenge" },
+      { name: "Phantasy Star Online 2", type: "challenge" },
+      { name: "Metro: 2033 Redux", type: "story" },
+      { name: "Metro: Last Light Redux", type: "story" },
+      { name: "For The King", type: "challenge" },
+      { name: "STAR WARS Battlefront II", type: "challenge" },
+      { name: "Crying Suns", type: "challenge" },
+      { name: "Jurassic World Evolution", type: "challenge" },
+      { name: "Alien: Isolation", type: "story" },
+      { name: "Oddworld: New 'n' Tasty", type: "story" },
+      { name: "CRSED: Cuisine Royale", type: "challenge" },
+      { name: "Cities: Skylines", type: "challenge" },
+      { name: "Tyranny - Gold Edition", type: "story" },
+      { name: "Pillars of Eternity", type: "story" },
+      { name: "The Textorcist", type: "challenge" },
+      { name: "Layers of Fear 2", type: "story" },
+      { name: "Costume Quest 2", type: "story" },
+      { name: "Paladins", type: "challenge" },
+      { name: "Heroes & Generals WWII", type: "challenge" },
+      { name: "Rocket League", type: "challenge" },
+      { name: "Dauntless", type: "challenge" },
+      { name: "Watch Dogs 2", type: "story" },
+      { name: "HITMAN", type: "story" },
+      { name: "SAMURAI SHODOWN NEOGEO COLLECTION", type: "challenge" },
+      { name: "ARK: Survival Evolved", type: "challenge" },
+      { name: "Fortnite", type: "challenge" }
+    ];
+
+    /* =====================================================================
+       2. Web Audio API Synthetic Sound FX
+       ===================================================================== */
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playTickSound() {
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(650, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      } catch (e) {}
+    }
+
+    function playWinFanfare() {
+      try {
+        const ctx = getAudioContext();
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const start = ctx.currentTime + (idx * 0.09);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, start);
+          gain.gain.setValueAtTime(0.2, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(start);
+          osc.stop(start + 0.35);
+        });
+      } catch (e) {}
+    }
+
+    /* =====================================================================
+       3. State & Storage Management
+       ===================================================================== */
+    const STORAGE_KEY = 'epic_backlog_data_v2';
+    let gameState = {
+      games: [],
+      activeGame: null,
+      reviews: []
+    };
+
+    function loadState() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+          gameState = JSON.parse(data);
+        } else {
+          // Initialize fresh from raw titles
+          gameState.games = RAW_TITLES.map((g, i) => ({
+            id: 'game_' + i,
+            name: g.name,
+            type: g.type, // 'story' | 'challenge'
+            status: 'Pendiente' // 'Pendiente' | 'Por Descargar' | 'Jugando' | 'Completado'
+          }));
+          gameState.activeGame = null;
+          gameState.reviews = [];
+          saveState();
+        }
+      } catch (e) {
+        console.error('Failed reading storage, resetting state', e);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+      } catch (e) {
+        console.warn('Storage unavailable', e);
+      }
+      updateUI();
+    }
+
+    /* =====================================================================
+       4. Canvas Wheel Engine
+       ===================================================================== */
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    let currentRotation = 0;
+    let isSpinning = false;
+    let currentSliceCount = 0;
+
+    // Harmonious neon-dark palette for segments
+    const SEGMENT_COLORS = [
+      '#0e2a47', '#1f2041', '#413c58', '#1b4965', 
+      '#2b2d42', '#143642', '#3d348b', '#2c1930'
+    ];
+
+    function getWheelPool() {
+      const excludeDone = document.getElementById('excludeCompletedToggle').checked;
+      let pool = gameState.games;
+      if (excludeDone) {
+        pool = pool.filter(g => g.status !== 'Completado');
+      }
+      return pool.length > 0 ? pool : gameState.games;
+    }
+
+    function setupCanvasSize() {
+      const dpr = window.devicePixelRatio || 1;
+      const size = Math.min(canvas.parentElement.clientWidth, 440);
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      ctx.scale(dpr, dpr);
+      drawWheel();
+    }
+
+    function drawWheel() {
+      const pool = getWheelPool();
+      const numSlices = Math.min(pool.length, 36); // Display up to 36 nicely partitioned segments
+      currentSliceCount = numSlices;
+      const dpr = window.devicePixelRatio || 1;
+      const size = canvas.width / dpr;
+      const center = size / 2;
+      const radius = center - 8;
+      const arc = (2 * Math.PI) / numSlices;
+
+      ctx.clearRect(0, 0, size, size);
+
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate(currentRotation);
+
+      for (let i = 0; i < numSlices; i++) {
+        const game = pool[i % pool.length];
+        const angle = i * arc;
+
+        // Draw sector
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, angle, angle + arc);
+        ctx.closePath();
+        ctx.fillStyle = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
+        ctx.fill();
+
+        // Edge separator
+        ctx.strokeStyle = '#080b11';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Game text label
+        ctx.save();
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '600 10.5px Inter, sans-serif';
+        
+        let label = game.name;
+        if (label.length > 17) {
+          label = label.substring(0, 15) + '..';
+        }
+        ctx.fillText(label, radius - 18, 0);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function spinWheel() {
+      if (isSpinning) return;
+      const pool = getWheelPool();
+      if (!pool.length) return;
+
+      isSpinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('centerSpinBtn').disabled = true;
+
+      // Pick random winner from the whole filtered pool
+      const selectedGame = pool[Math.floor(Math.random() * pool.length)];
+
+      // Physics params
+      const spinRotations = 6 + Math.random() * 4; // 6 to 10 full turns
+      const totalAngle = spinRotations * 2 * Math.PI;
+      const duration = 4800; // ms
+      const startTime = performance.now();
+      const startRotation = currentRotation;
+
+      let lastTickAngle = startRotation;
+
+      function animate(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Ease Out Cubic
+        const ease = 1 - Math.pow(1 - progress, 3);
+        currentRotation = startRotation + totalAngle * ease;
+
+        // Sound tick trigger on segment crossing
+        const sliceAngle = (2 * Math.PI) / (currentSliceCount || 20);
+        if (Math.abs(currentRotation - lastTickAngle) >= sliceAngle) {
+          playTickSound();
+          lastTickAngle = currentRotation;
+        }
+
+        drawWheel();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          isSpinning = false;
+          document.getElementById('spinBtn').disabled = false;
+          document.getElementById('centerSpinBtn').disabled = false;
+          playWinFanfare();
+          setActiveGame(selectedGame);
+          showToast(`¡Tu reto es: ${selectedGame.name}!`, 'sparkle');
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function instantRandomPick() {
+      const pool = getWheelPool();
+      if (!pool.length) return;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      playWinFanfare();
+      setActiveGame(pick);
+      showToast(`Seleccionado: ${pick.name}`, 'dice-five');
+    }
+
+    /* =====================================================================
+       5. Active Quest & Review Logic
+       ===================================================================== */
+    function setActiveGame(game) {
+      gameState.activeGame = game;
+      // If it was just pending, switch to Por Descargar default
+      const stored = gameState.games.find(g => g.name === game.name);
+      if (stored && stored.status === 'Pendiente') {
+        stored.status = 'Por Descargar';
+        gameState.activeGame.status = 'Por Descargar';
+      }
+      saveState();
+    }
+
+    function updateActiveQuestCard() {
+      const emptyPrompt = document.getElementById('questEmptyPrompt');
+      const activeContent = document.getElementById('questActiveContent');
+      const g = gameState.activeGame;
+
+      if (!g) {
+        emptyPrompt.classList.remove('hidden');
+        activeContent.classList.add('hidden');
+        return;
+      }
+
+      emptyPrompt.classList.add('hidden');
+      activeContent.classList.remove('hidden');
+
+      document.getElementById('questGameTitle').textContent = g.name;
+      const isStory = g.type === 'story';
+      
+      const badge = document.getElementById('activeTypeBadge');
+      badge.textContent = isStory ? 'Campaña / Historia' : 'Arcade / Roguelike / Multi';
+      badge.className = isStory 
+        ? 'px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-blue-950/80 text-blue-300 border border-blue-800/60'
+        : 'px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-purple-950/80 text-purple-300 border border-purple-800/60';
+
+      document.getElementById('questCategory').textContent = isStory
+        ? 'Enfoque narrativo o juego de aventura para un solo jugador'
+        : 'Partidas rejugables, multijugador, gestión o combate de habilidad';
+
+      document.getElementById('questGoalText').innerHTML = isStory
+        ? '<strong>Misión:</strong> Descargar, completar la campaña principal y presenciar los créditos de la historia.'
+        : '<strong>Misión:</strong> Alcanzar un nivel alto de maestría o completar un mínimo de <strong>10 horas de juego</strong>.';
+
+      // Update status buttons styling
+      const currStatus = g.status || 'Por Descargar';
+      document.querySelectorAll('.status-btn').forEach(btn => {
+        const s = btn.dataset.status;
+        if (s === currStatus) {
+          btn.className = 'status-btn py-2 px-1 text-xs rounded-xl font-bold bg-cyan-400 text-slate-950 border-cyan-300 shadow-md transition-all text-center';
+        } else {
+          btn.className = 'status-btn py-2 px-1 text-xs rounded-xl font-medium bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-600 transition-all text-center';
+        }
+      });
+    }
+
+    function setGameStatus(newStatus) {
+      if (!gameState.activeGame) return;
+      gameState.activeGame.status = newStatus;
+      const g = gameState.games.find(item => item.name === gameState.activeGame.name);
+      if (g) g.status = newStatus;
+
+      if (newStatus === 'Completado') {
+        openReviewModal();
+      }
+      saveState();
+    }
+
+    /* =====================================================================
+       6. Modals & Review Form Handling
+       ===================================================================== */
+    const reviewModal = document.getElementById('reviewModal');
+    const catalogModal = document.getElementById('catalogModal');
+
+    function openReviewModal() {
+      if (!gameState.activeGame) return;
+      document.getElementById('modalGameTitle').textContent = gameState.activeGame.name;
+      
+      // Check existing review to populate
+      const existing = gameState.reviews.find(r => r.gameName === gameState.activeGame.name);
+      if (existing) {
+        document.getElementById('logTime').value = existing.timeLogged;
+        document.getElementById('logRating').value = existing.rating;
+        document.getElementById('logSummary').value = existing.summary;
+        document.getElementById('logMoments').value = existing.moments;
+      } else {
+        document.getElementById('reviewForm').reset();
+      }
+
+      reviewModal.classList.remove('hidden');
+      setTimeout(() => reviewModal.classList.remove('opacity-0'), 10);
+    }
+
+    function closeReviewModal() {
+      reviewModal.classList.add('opacity-0');
+      setTimeout(() => reviewModal.classList.add('hidden'), 200);
+    }
+
+    function openCatalogModal() {
+      renderCatalogList();
+      catalogModal.classList.remove('hidden');
+      setTimeout(() => catalogModal.classList.remove('opacity-0'), 10);
+    }
+
+    function closeCatalogModal() {
+      catalogModal.classList.add('opacity-0');
+      setTimeout(() => catalogModal.classList.add('hidden'), 200);
+    }
+
+    document.getElementById('reviewForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!gameState.activeGame) return;
+
+      const reviewData = {
+        id: 'rev_' + Date.now(),
+        gameName: gameState.activeGame.name,
+        type: gameState.activeGame.type,
+        timeLogged: document.getElementById('logTime').value.trim(),
+        rating: document.getElementById('logRating').value.trim(),
+        summary: document.getElementById('logSummary').value.trim(),
+        moments: document.getElementById('logMoments').value.trim(),
+        date: new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })
+      };
+
+      // Upsert
+      const idx = gameState.reviews.findIndex(r => r.gameName === reviewData.gameName);
+      if (idx >= 0) {
+        gameState.reviews[idx] = reviewData;
+      } else {
+        gameState.reviews.unshift(reviewData);
+      }
+
+      // Ensure game is marked completed
+      const g = gameState.games.find(i => i.name === gameState.activeGame.name);
+      if (g) g.status = 'Completado';
+      gameState.activeGame.status = 'Completado';
+
+      saveState();
+      closeReviewModal();
+      showToast('¡Bitácora guardada con éxito en tu Salón de la Fama!', 'check-circle');
+    });
+
+    function copyMarkdownReview() {
+      const title = document.getElementById('modalGameTitle').textContent;
+      const time = document.getElementById('logTime').value || 'N/A';
+      const rating = document.getElementById('logRating').value || 'N/A';
+      const summary = document.getElementById('logSummary').value || 'Sin resumen';
+      const moments = document.getElementById('logMoments').value || 'Sin momentos especificados';
+
+      const md = `### 🎮 Reto Epic Games: ${title}
+- **Tiempo / Nivel:** ${time}
+- **Calificación:** ${rating}/10 ⭐
+- **Objetivo:** Completado ✅
+
+#### 📝 Resumen de Experiencia:
+${summary}
+
+#### 🔥 Momentos Épicos:
+${moments}
+`;
+
+      const tempTextarea = document.createElement('textarea');
+      tempTextarea.value = md;
+      document.body.appendChild(tempTextarea);
+      tempTextarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextarea);
+
+      showToast('¡Reseña copiada al portapapeles en Markdown!', 'copy');
+    }
+
+    /* =====================================================================
+       7. UI Rendering & Metrics
+       ===================================================================== */
+    function updateUI() {
+      // Metrics
+      const total = gameState.games.length;
+      const completed = gameState.games.filter(g => g.status === 'Completado').length;
+      const inProgress = gameState.games.filter(g => g.status === 'Jugando' || g.status === 'Por Descargar').length;
+
+      document.getElementById('totalGamesStat').textContent = total;
+      document.getElementById('completedStat').textContent = completed;
+      document.getElementById('pendingStat').textContent = inProgress;
+      document.getElementById('btnCatCount').textContent = total;
+
+      updateActiveQuestCard();
+      renderCompletedHall();
+      drawWheel();
+    }
+
+    function renderCompletedHall() {
+      const container = document.getElementById('completedGrid');
+      if (!gameState.reviews || gameState.reviews.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-slate-900/30 border border-dashed border-slate-800 rounded-3xl space-y-2">
+            <i class="ph ph-sparkle text-3xl text-slate-500"></i>
+            <p class="text-sm text-slate-400">Aún no has registrado juegos completados en tu bitácora.</p>
+            <p class="text-xs text-slate-500">¡Gira la ruleta, termina tu primer título y comparte tu opinión aquí!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = gameState.reviews.map(rev => `
+        <div class="bg-slate-900/70 border border-slate-800/90 rounded-2xl p-5 hover:border-slate-700 transition-all flex flex-col justify-between space-y-4 shadow-xl relative group">
+          <div class="space-y-3">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400">${rev.type === 'story' ? 'Historia Principal' : 'Reto 10h / Nivel'}</span>
+                <h4 class="text-lg font-bold font-display text-white">${rev.gameName}</h4>
+              </div>
+              <div class="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs">
+                <i class="ph-fill ph-star"></i> ${rev.rating}/10
+              </div>
+            </div>
+
+            <div class="text-xs text-slate-400 flex items-center gap-3">
+              <span><i class="ph ph-clock text-slate-500"></i> ${rev.timeLogged}</span>
+              <span><i class="ph ph-calendar text-slate-500"></i> ${rev.date}</span>
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/70 text-slate-300">
+                <p class="font-semibold text-slate-400 text-[11px] mb-1 uppercase tracking-wider">Veredicto:</p>
+                <p class="line-clamp-3">${rev.summary}</p>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-950/40 border border-slate-800/60 text-slate-300">
+                <p class="font-semibold text-slate-400 text-[11px] mb-1 uppercase tracking-wider">Hazaña Memorable:</p>
+                <p class="line-clamp-2 italic text-slate-400">"${rev.moments}"</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-800/70 flex items-center justify-between">
+            <button onclick="shareSingleReview('${rev.id}')" class="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold">
+              <i class="ph ph-share-network"></i> Copiar Resumen
+            </button>
+            <button onclick="deleteReview('${rev.id}')" class="text-xs text-slate-500 hover:text-rose-400 flex items-center gap-1">
+              <i class="ph ph-trash"></i> Eliminar
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.shareSingleReview = function(id) {
+      const r = gameState.reviews.find(item => item.id === id);
+      if (!r) return;
+      const text = `🎮 Reseña de Epic Games: *${r.gameName}*\n⭐ Nota: ${r.rating}/10 | ⏳ ${r.timeLogged}\n\n📝 Opinión:\n${r.summary}\n\n🔥 Momento Épico:\n${r.moments}`;
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+      showToast('¡Reseña copiada al portapapeles!', 'share-network');
+    };
+
+    window.deleteReview = function(id) {
+      gameState.reviews = gameState.reviews.filter(r => r.id !== id);
+      saveState();
+      showToast('Reseña removida de la bitácora.', 'trash');
+    };
+
+    /* =====================================================================
+       8. Catalog Search & Filter
+       ===================================================================== */
+    function renderCatalogList() {
+      const query = document.getElementById('catalogSearch').value.toLowerCase();
+      const typeFilter = document.getElementById('catalogFilterType').value;
+      const statusFilter = document.getElementById('catalogFilterStatus').value;
+
+      const filtered = gameState.games.filter(g => {
+        const matchesQuery = g.name.toLowerCase().includes(query);
+        const matchesType = typeFilter === 'ALL' || g.type === typeFilter;
+        const matchesStatus = statusFilter === 'ALL' || g.status === statusFilter;
+        return matchesQuery && matchesType && matchesStatus;
+      });
+
+      document.getElementById('catalogCountDisplay').textContent = `Mostrando ${filtered.length} de ${gameState.games.length} títulos`;
+
+      const listContainer = document.getElementById('catalogList');
+      if (filtered.length === 0) {
+        listContainer.innerHTML = `<div class="p-6 text-center text-slate-500">No se encontraron juegos con esos filtros.</div>`;
+        return;
+      }
+
+      listContainer.innerHTML = filtered.map(g => `
+        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700">
+          <div class="flex items-center gap-3">
+            <span class="w-2 h-2 rounded-full ${g.status === 'Completado' ? 'bg-emerald-400' : (g.status === 'Jugando' ? 'bg-amber-400' : 'bg-slate-600')}"></span>
+            <div>
+              <p class="font-semibold text-white">${g.name}</p>
+              <p class="text-[10px] text-slate-400">${g.type === 'story' ? 'Campaña / Historia' : '10 Horas / Competitivo'}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select onchange="updateCatalogItemStatus('${g.name}', this.value)" class="bg-slate-900 border border-slate-700 text-[11px] rounded-lg px-2 py-1 text-slate-300">
+              <option value="Pendiente" ${g.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+              <option value="Por Descargar" ${g.status === 'Por Descargar' ? 'selected' : ''}>Por Descargar</option>
+              <option value="Jugando" ${g.status === 'Jugando' ? 'selected' : ''}>Jugando</option>
+              <option value="Completado" ${g.status === 'Completado' ? 'selected' : ''}>Completado</option>
+            </select>
+            <button onclick="pickSpecificGame('${g.name}')" class="px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-semibold">
+              Elegir
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.updateCatalogItemStatus = function(gameName, newStatus) {
+      const g = gameState.games.find(i => i.name === gameName);
+      if (g) {
+        g.status = newStatus;
+        if (gameState.activeGame && gameState.activeGame.name === gameName) {
+          gameState.activeGame.status = newStatus;
+        }
+        saveState();
+        renderCatalogList();
+      }
+    };
+
+    window.pickSpecificGame = function(gameName) {
+      const g = gameState.games.find(i => i.name === gameName);
+      if (g) {
+        setActiveGame(g);
+        closeCatalogModal();
+        showToast(`Reto asignado: ${g.name}`, 'game-controller');
+      }
+    };
+
+    /* Toast Helper */
+    function showToast(message, iconName = 'check-circle') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = message;
+      document.getElementById('toastIcon').className = `ph ph-${iconName} text-cyan-400 text-2xl`;
+
+      toast.classList.remove('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
+      }, 3500);
+    }
+
+    /* =====================================================================
+       9. Event Listeners Initialization
+       ===================================================================== */
+    window.addEventListener('load', () => {
+      loadState();
+      setupCanvasSize();
+      window.addEventListener('resize', setupCanvasSize);
+
+      // Wheel Spin Triggers
+      document.getElementById('spinBtn').addEventListener('click', spinWheel);
+      document.getElementById('centerSpinBtn').addEventListener('click', spinWheel);
+      document.getElementById('randomPickBtn').addEventListener('click', instantRandomPick);
+      document.getElementById('excludeCompletedToggle').addEventListener('change', () => {
+        drawWheel();
+      });
+
+      // Status buttons inside Active Quest Card
+      document.querySelectorAll('.status-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setGameStatus(btn.dataset.status);
+        });
+      });
+
+      // Modals triggers
+      document.getElementById('openReviewBtn').addEventListener('click', openReviewModal);
+      document.getElementById('closeModalBtn').addEventListener('click', closeReviewModal);
+      document.getElementById('cancelReviewBtn').addEventListener('click', closeReviewModal);
+      document.getElementById('copyMarkdownBtn').addEventListener('click', copyMarkdownReview);
+
+      document.getElementById('manageLibraryBtn').addEventListener('click', openCatalogModal);
+      document.getElementById('closeCatalogBtn').addEventListener('click', closeCatalogModal);
+
+      // Search & Filters in catalog
+      document.getElementById('catalogSearch').addEventListener('input', renderCatalogList);
+      document.getElementById('catalogFilterType').addEventListener('change', renderCatalogList);
+      document.getElementById('catalogFilterStatus').addEventListener('change', renderCatalogList);
+
+      // Reset data
+      document.getElementById('resetAllDataBtn').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        loadState();
+        closeCatalogModal();
+        showToast('Datos locales reiniciados a los títulos predeterminados.', 'arrow-counter-clockwise');
+      });
+
+      // Export all reviews
+      document.getElementById('exportAllReviewsBtn').addEventListener('click', () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameState.reviews, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `epic_backlog_bitacora_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast('Archivo JSON de bitácora descargado.', 'file-arrow-down');
+      });
+    });
+  </script>
+</body>
+</html>
